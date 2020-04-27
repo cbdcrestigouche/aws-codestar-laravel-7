@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Adapted from https://raw.githubusercontent.com/saxenap/install-redis-amazon-linux-centos/master/redis-install-script.sh
+# Uses redis-server init script from https://raw.github.com/saxenap/install-redis-amazon-linux-centos/master/redis-server
+
+pgrep -x redis-server
+if [ $? = 0 ]; then
+    echo 'Redis already running'
+else
+    yum -y install gcc gcc-c++ make
+    wget http://download.redis.io/releases/redis-5.0.8.tar.gz
+    tar xzf redis-5.0.8.tar.gz
+    rm redis-5.0.8.tar.gz -f
+    cd redis-5.0.8.tar.gz
+    make
+    make install
+    mkdir /etc/redis /var/lib/redis
+    cp src/redis-server src/redis-cli /usr/local/bin
+    cp redis.conf /etc/redis
+    sed -i "s/^daemonize no$/daemonize yes/" /etc/redis/redis.conf
+    sed -i "s/^# bind 127.0.0.1$/bind 127.0.0.1/" /etc/redis/redis.conf
+    sed -i "s/^dir \.\//dir \/var\/lib\/redis\//" /etc/redis/redis.conf
+    sed -i "s/^loglevel verbose$/loglevel notice/" /etc/redis/redis.conf
+    sed -i "s/^logfile stdout$/logfile \/var\/log\/redis.log/" /etc/redis/redis.conf
+    wget https://raw.github.com/saxenap/install-redis-amazon-linux-centos/master/redis-server
+    mv redis-server /etc/init.d
+    chmod 755 /etc/init.d/redis-server
+    chkconfig --add redis-server
+    chkconfig --level 345 redis-server on
+    service redis-server start

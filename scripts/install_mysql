@@ -1,0 +1,46 @@
+pgrep -x mysqld
+if [ $? = 0 ]; then
+    echo 'MySQL already running'
+else
+    echo 'Initializing MySQL';
+
+    tee ~/secure_our_mysql.sh > /dev/null << EOF
+# shellcheck disable=SC2046
+# shellcheck disable=SC2230
+spawn $(which mysql_secure_installation)
+
+# Password Plugin
+expect "Press y|Y for Yes, any other key for No:"
+send "n\r"
+
+expect "New password:"
+send "$DB_ROOT_PASSWORD\r"
+
+expect "Re-enter new password:"
+send "$DB_ROOT_PASSWORD\r"
+
+expect "Remove anonymous users? (Press y|Y for Yes, any other key for No) :"
+send "y\r"
+
+expect "Disallow root login remotely? (Press y|Y for Yes, any other key for No) :"
+send "n\r"
+
+expect "Remove test database and access to it? (Press y|Y for Yes, any other key for No) :"
+send "y\r"
+
+expect "Reload privilege tables now? (Press y|Y for Yes, any other key for No) :"
+send "y\r"
+EOF
+
+    service mysqld start
+    chkconfig mysqld on
+
+    # Run Expect script.
+    # This runs the "mysql_secure_installation" script which removes insecure defaults.
+    expect ~/secure_our_mysql.sh
+
+    # Cleanup
+    rm -v ~/secure_our_mysql.sh # Remove the generated Expect script
+
+    mysql -u root -p$DB_ROOT_PASSWORD -e "CREATE DATABASE $DB_DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+fi

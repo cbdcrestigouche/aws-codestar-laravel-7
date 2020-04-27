@@ -1,0 +1,44 @@
+#!/bin/bash
+
+chmod 755 ./config
+./config
+
+sudo ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime
+
+cd /var/www/phplaravel || exit;
+yum -y update
+yum -y install httpd24 mysql57-server php73 php73-mbstring php73-mysqlnd php73-pdo php73-mcrypt php73-devel php73-intl expect
+
+chmod 755 ./install_mysql
+./install_mysql
+chmod 755 ./install_redis
+./install_redis
+
+curl -s https://getcomposer.org/installer | php
+php composer.phar install
+mv composer.phar /usr/local/bin/composer
+sed -i "s|AllowOverride None|AllowOverride All|g"  /etc/httpd/conf/httpd.conf
+sed -i "s|/var/www/html|/var/www/phplaravel/public|g"  /etc/httpd/conf/httpd.conf
+
+cp .env.example .env
+
+sed -i "s/APP_NAME=.*/APP_NAME=\"$APP_NAME\"/g" .env
+sed -i "s/APP_URL=.*/APP_URL=$APP_URL/g" .env
+sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=\"$DB_ROOT_PASSWORD\"/g" .env
+sed -i "s/DB_DATABASE=.*/DB_DATABASE=$DB_DATABASE/g" .env
+sed -i "s/MAIL_MAILER=.*/MAIL_MAILER=\"$MAIL_MAILER\"/g" .env
+sed -i "s/MAIL_HOST=.*/MAIL_HOST=\"$MAIL_HOST\"/g" .env
+sed -i "s/MAIL_PORT=.*/MAIL_PORT=\"$MAIL_PORT\"/g" .env
+sed -i "s/MAIL_USERNAME=.*/MAIL_USERNAME=\"$MAIL_USERNAME\"/g" .env
+sed -i "s/MAIL_PASSWORD=.*/MAIL_PASSWORD=\"$MAIL_PASSWORD\"/g" .env
+sed -i "s/MAIL_ENCRYPTION=.*/MAIL_ENCRYPTION=\"$MAIL_ENCRYPTION\"/g" .env
+sed -i "s/MAIL_FROM_ADDRESS=.*/MAIL_FROM_ADDRESS=\"$MAIL_FROM_ADDRESS\"/g" .env
+sed -i "s/MAIL_FROM_NAME=.*/MAIL_FROM_NAME=\"$MAIL_FROM_NAME\"/g" .env
+
+chown -R ec2-user:ec2-user /var/www/phplaravel
+usermod -a -G apache ec2-user
+chgrp -R apache storage bootstrap/cache
+chmod -R ug+rwx storage bootstrap/cache
+
+chmod 755 ./php_artisan
+./php_artisan

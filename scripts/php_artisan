@@ -1,0 +1,4 @@
+php artisan storage:link > /dev/null
+php artisan key:generate > /dev/null
+php artisan migrate > /dev/null
+php artisan db:seed > /dev/null
